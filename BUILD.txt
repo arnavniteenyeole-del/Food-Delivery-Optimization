@@ -1,0 +1,16 @@
+DOONEATS EXPRESS - CLEAN PURE-C BUILD
+=====================================
+Source files required:
+  algorithms.c   All core and supplementary DAA algorithms
+  city_io.c      City/order generation and CSV export
+  server.c       Local HTTP server and JSON API
+  core.h         Shared structures and declarations
+  dashboard.html Frontend
+
+Linux / GCC:
+  gcc -std=c17 -O2 algorithms.c city_io.c server.c -o webapp
+
+Windows / MinGW GCC:
+  gcc -std=c17 -O2 algorithms.c city_io.c server.c -o webapp.exe -lws2_32
+
+Run webapp (or webapp.exe), then open http://localhost:8080

@@ -1,0 +1,925 @@
+<!DOCTYPE html>
+<html lang="en">
+ <head>
+  <meta charset="utf-8"/>
+  <meta content="width=device-width,initial-scale=1" name="viewport"/>
+  <title>
+   DoonEats Express | Operations
+  </title>
+  <script>
+/* Lightweight offline canvas charts for the two benchmark plots. No network dependencies. */
+class Chart {
+ constructor(canvas,config){this.canvas=canvas;this.config=config;this.draw();}
+ destroy(){const c=this.canvas.getContext('2d');c.clearRect(0,0,this.canvas.width,this.canvas.height);}
+ draw(){const el=this.canvas,rect=el.getBoundingClientRect(),w=Math.max(350,Math.round(rect.width)),h=Math.max(230,Math.round(rect.height));el.width=w;el.height=h;const c=el.getContext('2d'),pad={l:47,r:20,t:35,b:53},pw=w-pad.l-pad.r,ph=h-pad.t-pad.b;const labels=this.config.data.labels,sets=this.config.data.datasets,bar=this.config.type==='bar';c.font='12px Segoe UI, Arial';c.textAlign='right';c.fillStyle='#697386';c.strokeStyle='#e3e8ef';for(let v=0;v<=100;v+=20){let y=pad.t+ph*(1-v/100);c.beginPath();c.moveTo(pad.l,y);c.lineTo(w-pad.r,y);c.stroke();c.fillText(String(v),pad.l-8,y+4);}c.textAlign='center';labels.forEach((label,i)=>{let x=pad.l+pw*(i+.5)/labels.length;c.fillText(label,x,h-pad.b+20)});sets.forEach((s,si)=>{c.strokeStyle=s.borderColor||s.backgroundColor||'#ff5a1f';c.fillStyle=s.backgroundColor||s.borderColor||'#ff5a1f';c.lineWidth=3;if(bar){s.data.forEach((v,i)=>{let bw=pw/labels.length*.7,x=pad.l+pw*(i+.5)/labels.length-bw/2,y=pad.t+ph*(1-v/100);c.fillRect(x,y,bw,Math.max(0,pad.t+ph-y));});}else{c.beginPath();s.data.forEach((v,i)=>{let x=pad.l+pw*(i+.5)/labels.length,y=pad.t+ph*(1-v/100);i?c.lineTo(x,y):c.moveTo(x,y)});c.stroke();s.data.forEach((v,i)=>{let x=pad.l+pw*(i+.5)/labels.length,y=pad.t+ph*(1-v/100);c.beginPath();c.arc(x,y,3,0,Math.PI*2);c.fill();});}c.fillStyle='#4b5563';c.font='11px Segoe UI, Arial';c.textAlign='left';c.fillText(s.label,pad.l+si*(pw/Math.max(1,sets.length)),18);});}
+}
+
+  </script>
+  <style>
+   :root {
+    --o:#ff5a1f;
+    --od:#e84b12;
+    --bg:#f6f7f9;
+    --card:#fff;
+    --text:#171a21;
+    --muted:#737987;
+    --line:#e7e9ee;
+    --green:#15803d;
+    --red:#c62828;
+    --blue:#2563eb
+}
+* {
+    box-sizing:border-box
+}
+body {
+    margin:0;
+    font-family:Segoe UI,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text)
+}
+button,input {
+    font:inherit
+}
+.shell {
+    display:grid;
+    grid-template-columns:210px 1fr;
+    min-height:100vh
+}
+.side {
+    background:#fff;
+    border-right:1px solid var(--line);
+    padding:22px 14px;
+    display:flex;
+    flex-direction:column;
+    justify-content:space-between
+}
+.brand {
+    display:flex;
+    gap:10px;
+    align-items:center;
+    padding:0 8px 24px
+}
+.logo {
+    width:40px;
+    height:40px;
+    border-radius:11px;
+    background:var(--o);
+    color:#fff;
+    display:grid;
+    place-items:center;
+    font-weight:800
+}
+.brand b {
+    display:block
+}
+.brand small {
+    color:var(--green)
+}
+.nav {
+    display:grid;
+    gap:5px
+}
+.nav button {
+    border:0;
+    background:transparent;
+    text-align:left;
+    padding:11px 12px;
+    border-radius:9px;
+    color:#606675;
+    font-weight:650;
+    cursor:pointer
+}
+.nav button.active {
+    background:#fff1eb;
+    color:var(--o)
+}
+.hub {
+    border:1px solid var(--line);
+    border-radius:10px;
+    padding:12px;
+    font-size:12px
+}
+.hub span {
+    display:block;
+    color:var(--muted);
+    font-size:10px;
+    margin-bottom:4px
+}
+.main {
+    min-width:0
+}
+.top {
+    height:70px;
+    background:#fff;
+    border-bottom:1px solid var(--line);
+    padding:0 25px;
+    display:flex;
+    align-items:center;
+    justify-content:space-between
+}
+.top h1 {
+    font-size:19px;
+    margin:0
+}
+.top p {
+    font-size:11px;
+    color:var(--muted);
+    margin:4px 0 0
+}
+.actions {
+    display:flex;
+    gap:8px
+}
+.btn {
+    border:1px solid var(--line);
+    background:#fff;
+    border-radius:9px;
+    padding:10px 13px;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer
+}
+.btn.primary {
+    background:var(--o);
+    border-color:var(--o);
+    color:#fff
+}
+.controls {
+    margin:18px 25px 0;
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:12px 15px;
+    display:flex;
+    align-items:center;
+    gap:17px;
+    flex-wrap:wrap
+}
+.controls strong {
+    font-size:11px;
+    color:var(--muted);
+    text-transform:uppercase
+}
+.ctrl {
+    display:flex;
+    align-items:center;
+    gap:6px;
+    font-size:11px;
+    color:var(--muted)
+}
+.ctrl input {
+    width:56px;
+    border:1px solid var(--line);
+    border-radius:7px;
+    padding:6px;
+    text-align:center;
+    font-weight:700;
+    color:var(--text)
+}
+.kpis {
+    padding:15px 25px;
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:12px
+}
+.kpi {
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:12px;
+    padding:15px
+}
+.kpi label {
+    font-size:10px;
+    color:var(--muted);
+    font-weight:700
+}
+.kpi b {
+    display:block;
+    font-size:24px;
+    margin-top:7px
+}
+.kpi small {
+    color:var(--muted);
+    font-size:9px
+}
+.content {
+    padding:0 25px 25px
+}
+.view {
+    display:none
+}
+.view.active {
+    display:block
+}
+.panel {
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:12px;
+    overflow:hidden
+}
+.ph {
+    padding:14px 16px;
+    border-bottom:1px solid var(--line);
+    display:flex;
+    align-items:center;
+    justify-content:space-between
+}
+.ph h2 {
+    font-size:14px;
+    margin:0
+}
+.ph p {
+    font-size:10px;
+    color:var(--muted);
+    margin:3px 0 0
+}
+.overview {
+    display:grid;
+    grid-template-columns:1.45fr .85fr;
+    gap:13px
+}
+.routeboard {
+    min-height:475px;
+    padding:20px;
+    background:linear-gradient(135deg,#fafafa,#f3f4f6);
+    position:relative;
+    overflow:hidden
+}
+.coverage-svg {
+    display:block;
+    width:100%;
+    height:475px;
+}
+.hubdot {
+    position:absolute;
+    left:48%;
+    top:47%;
+    width:22px;
+    height:22px;
+    border-radius:50%;
+    background:var(--o);
+    border:4px solid white;
+    box-shadow:0 0 0 1px #ddd
+}
+.route {
+    position:absolute;
+    height:3px;
+    transform-origin:left center;
+    border-radius:3px;
+    opacity:.75
+}
+.zone {
+    position:absolute;
+    width:12px;
+    height:12px;
+    border-radius:50%;
+    background:#fff;
+    border:3px solid var(--blue)
+}
+.mapnote {
+    position:absolute;
+    left:18px;
+    bottom:16px;
+    background:#ffffffdd;
+    border:1px solid var(--line);
+    padding:8px 10px;
+    border-radius:8px;
+    font-size:10px;
+    color:var(--muted)
+}
+.orders {
+    height:475px;
+    overflow:auto;
+    padding:8px;
+    background:#fafbfc
+}
+.order {
+    background:#fff;
+    border:1px solid var(--line);
+    border-radius:8px;
+    padding:10px;
+    margin-bottom:7px
+}
+.orow {
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    font-size:11px
+}
+.order small {
+    display:block;
+    color:var(--muted);
+    margin-top:4px;
+    font-size:9px
+}
+.pill {
+    display:inline-block;
+    margin-top:7px;
+    padding:3px 6px;
+    border-radius:5px;
+    background:#f1f3f5;
+    font-size:9px
+}
+.ok {
+    background:#ecfdf3;
+    color:var(--green)
+}
+.late {
+    background:#fff1f2;
+    color:var(--red)
+}
+.opsgrid {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:13px
+}
+.cards {
+    padding:14px;
+    display:grid;
+    gap:9px
+}
+.station,.trip,.netcard {
+    border:1px solid var(--line);
+    border-radius:9px;
+    padding:11px
+}
+.station h3,.trip h3 {
+    font-size:11px;
+    margin:0 0 7px
+}
+.mini {
+    font-size:9px;
+    color:var(--muted);
+    line-height:1.55
+}
+.load {
+    height:6px;
+    background:#edf0f3;
+    border-radius:5px;
+    margin-top:7px;
+    overflow:hidden
+}
+.load i {
+    display:block;
+    height:100%;
+    background:var(--o)
+}
+.network {
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    gap:10px;
+    padding:14px
+}
+.netcard b {
+    font-size:20px;
+    display:block;
+    margin:7px 0
+}
+.charts {
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:13px
+}
+.chartbox {
+    height:360px;
+    padding:16px
+}
+.empty {
+    padding:25px;
+    color:var(--muted);
+    font-size:12px
+}
+.loading {
+    opacity:.55;
+    pointer-events:none
+}
+@media(max-width:950px) {
+    .shell {
+        grid-template-columns:1fr
+    }
+    .side {
+        display:none
+    }
+    .overview,.opsgrid,.charts {
+        grid-template-columns:1fr
+    }
+    .kpis {
+        grid-template-columns:1fr 1fr
+    }
+    .network {
+        grid-template-columns:1fr 1fr
+    }
+}
+@media(max-width:560px) {
+    .kpis {
+        grid-template-columns:1fr
+    }
+    .controls {
+        margin-left:12px;
+        margin-right:12px
+    }
+    .content,.kpis {
+        padding-left:12px;
+        padding-right:12px
+    }
+    .top {
+        padding:0 12px
+    }
+}
+  </style>
+ </head>
+ <body>
+  <div class="shell">
+   <aside class="side">
+    <div>
+     <div class="brand">
+      <div class="logo">
+       DE
+      </div>
+      <div>
+       <b>
+        DoonEats
+       </b>
+       <small>
+        ● Operations online
+       </small>
+      </div>
+     </div>
+     <div class="nav">
+      <button class="active" onclick="showView(0,this)">
+       Overview
+      </button>
+      <button onclick="showView(1,this)">
+       Operations
+      </button>
+      <button onclick="showView(2,this)">
+       Network
+      </button>
+      <button onclick="showView(3,this)">
+       Performance
+      </button>
+     </div>
+    </div>
+    <div class="hub">
+     <span>
+      ACTIVE HUB
+     </span>
+     <b>
+      Clock Tower, Dehradun
+     </b>
+    </div>
+   </aside>
+   <main class="main">
+    <header class="top">
+     <div>
+      <h1 id="title">
+       Delivery Overview
+      </h1>
+      <p id="subtitle">
+       Live workload and delivery status
+      </p>
+     </div>
+     <div class="actions">
+      <button class="btn" onclick="runSim(true)">
+       + Priority order
+      </button>
+      <button class="btn primary" onclick="runSim(false)">
+       Refresh plan
+      </button>
+     </div>
+    </header>
+    <div class="controls">
+     <strong>
+      Scenario
+     </strong>
+     <div class="ctrl">
+      Orders
+      <input id="n" max="400" min="5" type="number" value="30"/>
+     </div>
+     <div class="ctrl">
+      Prep stations
+      <input id="s" max="25" min="1" type="number" value="5"/>
+     </div>
+     <div class="ctrl">
+      Riders
+      <input id="r" max="35" min="1" type="number" value="6"/>
+     </div>
+     <div class="ctrl">
+      Bag kg
+      <input id="bag" max="24" min="1" type="number" value="12"/>
+     </div>
+     <div class="ctrl">
+      Max drops
+      <input id="batch" max="5" min="1" type="number" value="4"/>
+     </div>
+    </div>
+    <div class="kpis">
+     <div class="kpi">
+      <label>
+       ON-TIME DELIVERIES
+      </label>
+      <b id="ontime">
+       --%
+      </b>
+      <small>
+       within promised window
+      </small>
+     </div>
+     <div class="kpi">
+      <label>
+       AVG DELIVERY TIME
+      </label>
+      <b id="avg">
+       -- min
+      </b>
+      <small>
+       arrival to doorstep
+      </small>
+     </div>
+     <div class="kpi">
+      <label>
+       UNSERVED ORDERS
+      </label>
+      <b id="count">
+       --
+      </b>
+      <small>
+       cannot fit current bag capacity
+      </small>
+     </div>
+     <div class="kpi">
+      <label>
+       ROUTES PRUNED
+      </label>
+      <b id="pruned">
+       --
+      </b>
+      <small>
+       unnecessary sequences skipped
+      </small>
+     </div>
+    </div>
+    <div class="content">
+     <section class="view active" id="v0">
+      <div class="overview">
+       <div class="panel">
+        <div class="ph">
+         <div>
+          <h2>
+           Delivery coverage
+          </h2>
+          <p>
+           Current trips from the central kitchen
+          </p>
+         </div>
+        </div>
+        <div class="routeboard" id="routeboard">
+         <div class="hubdot">
+         </div>
+         <div class="mapnote">
+          Schematic trip paths (not GPS roads) · select Operations for stop details
+         </div>
+        </div>
+       </div>
+       <div class="panel">
+        <div class="ph">
+         <div>
+          <h2>
+           Active orders
+          </h2>
+          <p>
+           Latest scheduled deliveries
+          </p>
+         </div>
+        </div>
+        <div class="orders" id="orders">
+        </div>
+       </div>
+      </div>
+     </section>
+     <section class="view" id="v1">
+      <div class="opsgrid">
+       <div class="panel">
+        <div class="ph">
+         <div>
+          <h2>
+           Kitchen schedule
+          </h2>
+          <p>
+           Orders grouped by preparation station
+          </p>
+         </div>
+         <span class="pill" id="needstoves">
+          --
+         </span>
+        </div>
+        <div class="cards" id="stations">
+        </div>
+       </div>
+       <div class="panel">
+        <div class="ph">
+         <div>
+          <h2>
+           Driver schedule
+          </h2>
+          <p>
+           Trips, stop sequence and bag utilization
+          </p>
+         </div>
+        </div>
+        <div class="cards" id="trips">
+        </div>
+       </div>
+      </div>
+     </section>
+     <section class="view" id="v2">
+      <div class="panel">
+       <div class="ph">
+        <div>
+         <h2>
+          Network summary
+         </h2>
+         <p>
+          Capacity and supporting infrastructure indicators
+         </p>
+        </div>
+       </div>
+       <div class="network" id="network">
+       </div>
+      </div>
+     </section>
+     <section class="view" id="v3">
+      <div class="charts">
+       <div class="panel">
+        <div class="ph">
+         <div>
+          <h2>
+           Scheduling under increasing demand
+          </h2>
+          <p>
+           Multi-stop planning compared with one-order-per-trip dispatch
+          </p>
+         </div>
+         <button class="btn" onclick="refreshPerformanceCharts()">
+          Run test
+         </button>
+        </div>
+        <div class="chartbox">
+         <canvas id="demandChart">
+         </canvas>
+        </div>
+       </div>
+       <div class="panel">
+        <div class="ph">
+         <div>
+          <h2>
+           Driver scheduling capacity
+          </h2>
+          <p>
+           How fleet size changes on-time performance for the same workload
+          </p>
+         </div>
+         <button class="btn" onclick="refreshPerformanceCharts()">
+          Run test
+         </button>
+        </div>
+        <div class="chartbox">
+         <canvas id="riderChart">
+         </canvas>
+        </div>
+       </div>
+      </div>
+     </section>
+    </div>
+   </main>
+  </div>
+  <script>
+   const sectors=['Clock Tower','Rajpur Road','Astley Hall','Karanpur','Dalanwala','Race Course','Ballupur','Vasant Vihar','Indira Nagar','Patel Nagar','Prem Nagar','Clement Town','ISBT','Subhash Nagar','Sahastradhara','IT Park','Canal Road','Jakhan','Pacific Hills','Garhi Cantt','ONGC Chowk','Kaulagarh','Pondha','Bidholi','Majra'];
+const names=['Rohit','Aman','Saurabh','Gaurav','Deepak','Vikas','Nitin','Ankit','Mohit','Karan'];
+let data=null,dc=null,rc=null;
+let chartRunId=0;
+const pages=[['Delivery Overview','Live workload and delivery status'],['Operations','Kitchen preparation and driver schedules'],['Network','Capacity and infrastructure summary'],['Performance','Scheduling behaviour under changing demand']];
+function showView(i,b){
+    document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+    document.querySelectorAll('.nav button').forEach(x=>x.classList.remove('active'));
+    document.getElementById('v'+i).classList.add('active');
+    b.classList.add('active');
+    title.textContent=pages[i][0];
+    subtitle.textContent=pages[i][1];
+    if(i===3&&!dc){
+        refreshPerformanceCharts();
+    }
+}
+function url(extra=''){
+    return `/api/simulate?n=${n.value}&stoves=${s.value}&riders=${r.value}&batch=${batch.value}&bag=${bag.value}${extra}`
+}
+async function runSim(priority){
+    document.querySelector('.main').classList.add('loading');
+    try{
+        data=await fetch(url(priority?'&unode=23':'')).then(x=>{if(!x.ok)throw Error('Simulation HTTP '+x.status);return x.json()});
+        render();
+        if(document.getElementById('v3').classList.contains('active')) refreshPerformanceCharts();
+    } catch(e){alert('Simulation failed: '+e.message);console.error(e)} finally{
+        document.querySelector('.main').classList.remove('loading')
+    }
+}
+function render(){
+    const m=data.metrics;
+    if(m.served !== data.orders.filter(o=>o.served).length) console.error('Inconsistent served count',m);
+    ontime.textContent=m.on_time_pct.toFixed(1)+'%';
+    avg.textContent=m.avg_wait.toFixed(1)+' min';
+    count.textContent=m.unserved;
+    pruned.textContent=m.pruned;
+    needstoves.textContent='Suggested capacity: '+data.diag.min_stoves_opt;
+    renderOrders();
+    renderRoutes();
+    renderStations();
+    renderTrips();
+    renderNetwork()
+}
+function renderOrders(){
+    orders.innerHTML=data.orders.slice(0,60).map(o=>{
+        const bad=!o.served;return `<div class="order"><div class="orow"><b>#${o.id} · ${sectors[o.node%sectors.length]}</b><b>${bad?'Unserved':o.deliv.toFixed(1)+'m'}</b></div><small>Station ${o.stove} · ${bad?'No rider / no trip':`Rider ${
+            o.rider
+        }
+        · ${
+            o.kg
+        }
+        kg · Trip ${
+            o.batch
+        }
+        `}</small><span class="pill ${bad?'late':(o.on_time?'ok':'late')}">${bad?'Capacity exceeded':(o.on_time?'On time':'Delayed')}</span></div>`
+    }
+    ).join('')
+}
+function renderRoutes(){
+    const box = document.getElementById('routeboard');
+    box.querySelectorAll('.route,.zone,.coverage-svg').forEach(el=>el.remove());
+    const served = data.orders.filter(o=>o.served && o.batch > 0);
+    const groups = new Map();
+    for(const o of served){
+        if(!groups.has(o.batch)) groups.set(o.batch,[]);
+        groups.get(o.batch).push(o);
+    }
+    // Schematic coordinates, not geographical GPS or actual road paths.
+    const positions = Array.from({length:25},(_,i)=>{
+        if(i===0) return [500,285];
+        const angle = (i-1)*Math.PI*2/24-Math.PI/2;
+        const ring = i%3===0 ? 220 : i%3===1 ? 155 : 195;
+        return [500+Math.cos(angle)*ring*1.65,285+Math.sin(angle)*ring];
+    });
+    const svgNS='http://www.w3.org/2000/svg';
+    const make=(tag,attrs={},parent)=>{
+        const e=document.createElementNS(svgNS,tag);
+        for(const [k,v] of Object.entries(attrs)) e.setAttribute(k,String(v));
+        (parent||svg).appendChild(e); return e;
+    };
+    const svg=document.createElementNS(svgNS,'svg');
+    svg.setAttribute('viewBox','0 0 1000 570');
+    svg.setAttribute('preserveAspectRatio','xMidYMid meet');
+    svg.classList.add('coverage-svg');
+    svg.setAttribute('role','img');
+    svg.setAttribute('aria-label','Schematic rider trips from Clock Tower hub to customer sectors');
+    box.prepend(svg);
+    const defs=make('defs');
+    const pattern=make('pattern',{id:'coverage-grid',width:50,height:50,patternUnits:'userSpaceOnUse'},defs);
+    make('path',{d:'M 50 0 L 0 0 0 50',fill:'none',stroke:'#e7edf4','stroke-width':1},pattern);
+    make('rect',{x:0,y:0,width:1000,height:570,fill:'url(#coverage-grid)'});
+    const palette=['#f97316','#2563eb','#10b981','#a855f7','#eab308','#ec4899','#0891b2','#64748b'];
+    const visible=[...groups.entries()];
+    const displayedNodes=new Set();
+    visible.forEach(([tripId,orders],i)=>{
+        const stops=[positions[0],...orders.map(o=>positions[o.node%25])];
+        const color=palette[i%palette.length];
+        make('polyline',{points:stops.map(pt=>pt.join(',')).join(' '),fill:'none',stroke:'#fff','stroke-width':8,'stroke-linecap':'round','stroke-linejoin':'round'});
+        const line=make('polyline',{points:stops.map(pt=>pt.join(',')).join(' '),fill:'none',stroke:color,'stroke-width':3.5,'stroke-linecap':'round','stroke-linejoin':'round',opacity:.85});
+        const title=make('title',{},line);title.textContent=`Trip ${tripId} | Rider ${orders[0].rider} | ${orders.length} stop(s)`;
+        orders.forEach(o=>displayedNodes.add(o.node%25));
+    });
+    for(const node of displayedNodes){
+        const [x,y]=positions[node];
+        make('circle',{cx:x,cy:y,r:9,fill:'#fff',stroke:'#2563eb','stroke-width':3});
+        const text=make('text',{x:x+12,y:y-12,'font-size':13,'font-weight':600,fill:'#334155'});
+        text.textContent=sectors[node];
+    }
+    make('circle',{cx:500,cy:285,r:16,fill:'#fff',stroke:'#ff5a1f','stroke-width':5});
+    make('circle',{cx:500,cy:285,r:7,fill:'#ff5a1f'});
+    const hubLabel=make('text',{x:520,y:275,'font-size':16,'font-weight':700,fill:'#1e293b'});
+    hubLabel.textContent='Clock Tower hub';
+    const countLabel=make('text',{x:22,y:32,'font-size':15,'font-weight':700,fill:'#475569'});
+    countLabel.textContent=`${groups.size} trips • ${served.length} served orders`;
+}
+function renderStations(){
+    const k=data.metrics.stoves;
+    stations.innerHTML=Array.from({
+        length:k
+    }
+    ,(_,i)=>{
+        const a=data.orders.filter(o=>o.stove===i+1);return `<div class="station"><h3>Prep station ${i+1} <span class="pill">${a.length} orders</span></h3><div class="mini">${a.slice(0,7).map(o=>`#${
+            o.id
+        }
+        ${
+            sectors[o.node%25]
+        }
+        · ready ${
+            o.ready.toFixed(1)
+        }
+        m`).join('<br>')||'No orders'}</div></div>`
+    }
+    ).join('')
+}
+function renderTrips(){
+    const ts={
+    }
+    ;
+    data.orders.filter(o=>o.served).forEach(o=>{
+        if(!ts[o.batch])ts[o.batch]={
+            r:o.rider,kg:0,a:[]
+        }
+        ;ts[o.batch].kg+=o.kg;ts[o.batch].a.push(o)
+    }
+    );
+    trips.innerHTML=Object.entries(ts).slice(0,40).map(([id,t])=>{
+        const pct=Math.min(100,t.kg/+bag.value*100);return `<div class="trip"><h3>${names[t.r%names.length]} · Trip #${id}</h3><div class="mini"><b>Stops:</b> ${t.a.map(o=>sectors[o.node%25]).join(' → ')}<br><b>Orders:</b> ${t.a.map(o=>'#'+o.id).join(', ')} · ${t.kg}/${bag.value} kg</div><div class="load"><i style="width:${pct}%"></i></div></div>`
+    }
+    ).join('')
+}
+function renderNetwork(){
+    const d = data.diag || {};
+    const number = (v, digits=1) => typeof v === 'number' && Number.isFinite(v) ? v.toFixed(digits) : 'N/A';
+    const percent = (v) => typeof v === 'number' && Number.isFinite(v) && v !== -1 ? v.toFixed(1)+'%' : 'N/A';
+    const signed = (v) => typeof v === 'number' && Number.isFinite(v) ? (v>0?'+':'')+v.toFixed(1)+' min' : 'N/A';
+    const cards = [
+        ['Minimum network', number(d.prim_cost)+' weight units', 'Prim and Kruskal agree: '+number(d.kruskal_cost)+' weight units'],
+        ['Synthetic corridor flow', number(d.max_flow)+' capacity units', 'Edmonds-Karp on synthetic road capacities; not measured traffic'],
+        ['Compatible assignments', number(d.bipartite,0), 'Maximum matching on current rider/order compatibility graph'],
+        ['Bidholi route', number(d.bellman_bidholi)+' min', 'Alternative route estimate'],
+        ['Huffman coding change', percent(d.huff_saved_pct), 'Negative means encoded data is larger than 8-bit symbols'],
+        ['Maximum deadline slack subarray', signed(d.surge_score), 'Maximum contiguous sum of order deadline slack; negative is possible']
+    ];
+    network.innerHTML = cards.map(x=>`<div class="netcard"><span class="mini">${x[0]}</span><b>${x[1]}</b><span class="mini">${x[2]}</span></div>`).join('');
+}
+async function sim(q){
+    return fetch('/api/simulate?'+q).then(x=>{if(!x.ok)throw Error('Simulation HTTP '+x.status);return x.json()})
+}
+function scenarioNumber(el, fallback, minimum, maximum) {
+    const value = Number(el.value);
+    return Number.isFinite(value) ? Math.min(maximum, Math.max(minimum, Math.floor(value))) : fallback;
+}
+function refreshPerformanceCharts() {
+    const token = ++chartRunId;
+    runDemandChart(token).catch(e => console.error('Demand chart failed:', e));
+    runRiderChart(token).catch(e => console.error('Rider chart failed:', e));
+}
+async function runDemandChart(token) {
+    token = token ?? ++chartRunId;
+    const orders = scenarioNumber(n, 30, 5, 500);
+    const stations = scenarioNumber(s, 5, 1, 100);
+    const fleet = scenarioNumber(r, 6, 1, 100);
+    const capacity = scenarioNumber(bag, 12, 1, 100);
+    const drops = scenarioNumber(batch, 4, 1, 8);
+    // Scale around the selected workload; deduplicate at low order counts.
+    const sizes = [...new Set([0.5, 0.75, 1, 1.5, 2].map(f =>
+        Math.min(500, Math.max(5, Math.round(orders * f)))))].sort((a,b) => a-b);
+    const smart = [], single = [];
+    for (const x of sizes) {
+        const common = `n=${x}&stoves=${stations}&riders=${fleet}&bag=${capacity}`;
+        smart.push((await sim(`${common}&batch=${drops}`)).metrics.on_time_pct);
+        single.push((await sim(`${common}&batch=1`)).metrics.on_time_pct);
+        if (token !== chartRunId) return;
+    }
+    if (dc) dc.destroy();
+    dc = new Chart(demandChart, {
+        type: 'line',
+        data: { labels: sizes.map(x => x+' orders'), datasets: [
+            {label: `Selected strategy (${drops} max drops)`, data: smart, borderColor:'#ff5a1f', tension:.25},
+            {label: '', data: single, borderColor:'#94a3b8', tension:.25},
+            {label: 'Single-order dispatch', data: single, borderColor:'#94a3b8', tension:.25}
+        ]},
+        options: {maintainAspectRatio:false, scales:{y:{min:0,max:100,title:{display:true,text:'On-time deliveries (%)'}}}}
+    });
+}
+async function runRiderChart(token) {
+    token = token ?? ++chartRunId;
+    const orders = scenarioNumber(n, 30, 5, 500);
+    const stations = scenarioNumber(s, 5, 1, 100);
+    const fleet = scenarioNumber(r, 6, 1, 100);
+    const capacity = scenarioNumber(bag, 12, 1, 100);
+    const drops = scenarioNumber(batch, 4, 1, 8);
+    const riders = [...new Set([2,3,4,6,8,10,fleet])].sort((a,b)=>a-b);
+    const vals = [];
+    for (const x of riders) {
+        vals.push((await sim(`n=${orders}&stoves=${stations}&riders=${x}&batch=${drops}&bag=${capacity}`)).metrics.on_time_pct);
+        if (token !== chartRunId) return;
+    }
+    if (rc) rc.destroy();
+    rc = new Chart(riderChart, {
+        type:'bar',
+        data:{labels:riders.map(x=>x+' riders'),datasets:[{label:'On-time deliveries',data:vals,backgroundColor:'#ff5a1f'}]},
+        options:{maintainAspectRatio:false,scales:{y:{min:0,max:100,title:{display:true,text:'On-time deliveries (%)'}}}}
+    });
+}
+runSim(false);
+  </script>
+ </body>
+</html>
